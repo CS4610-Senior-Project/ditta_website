@@ -107,6 +107,10 @@ celerybeat.pid
 .venv
 env/
 venv/
+venv_*/
+*.pyc
+__pycache__/
+.env
 ENV/
 env.bak/
 venv.bak/
@@ -129,7 +133,4 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# env
-*.pyc
-.env
 node_modules/
