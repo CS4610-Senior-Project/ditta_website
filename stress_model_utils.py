@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import pickle
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Load NN2 assets once, globally
 with open(os.path.join(BASE_DIR, "models", "scaler_x_NN2.pkl"), "rb") as f:
     x_scaler = pickle.load(f)
