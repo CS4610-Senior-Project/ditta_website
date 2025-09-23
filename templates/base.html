@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CPP DiTTA{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #ffffff;
+            color: #000000;
+        }
+        .navbar-custom {
+            background: url("{{ url_for('static', filename='cpp_campus.png') }}") no-repeat center center;
+            background-size: cover;
+            position: relative;
+        }
+        .navbar-custom .navbar-brand, .navbar-custom .nav-link {
+            color: white !important;
+            text-shadow:
+                -1px -1px 0 #000,
+                1px -1px 0 #000,
+                -1px 1px 0 #000,
+                1px 1px 0 #000;
+        }
+        .content-wrapper {
+            background-color: #ffffff; /* Light shade of white */
+            margin: 45px auto; /* Center content with margin on left and right */
+            padding: 45px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Optional: Add shadow for better visibility */
+            border-radius: 10px; /* Optional: Rounded corners */
+            max-width: 1200px; /* Optional: Set a maximum width */
+        }
+        .container {
+            padding: 0;
+        }
+         h1, h2, h3, h4, h5, h6 {
+            font-family: "Roboto Mono", monospace;
+        }
+        .navbar-custom .navbar-brand {
+            display: flex;
+            align-items: center;
+        }
+        .navbar-custom .navbar-brand img {
+            margin-right: 10px;
+        }
+        .navbar-custom .navbar-nav .nav-link {
+            margin-right: 15px;
+        }
+        .slider {
+            height: 150px; /* Increased height to fit within the container */
+            width: 100px; /* THIS adjusts the height of the slider track itself */
+            transform: rotate(270deg);
+        }
+        .slider-container {
+            margin-top: 20px;
+        }
+        .slider-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            margin: 10px;
+            padding: 5px; /* Reduced padding to fit better */
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            transition: transform 0.3s ease;
+        }
+        .slider-wrapper:hover {
+            transform: translateY(-5px);
+        }
+        .slider-label {
+            margin-bottom: 5px; /* Reduced margin */
+            font-weight: bold;
+            font-size: 1em;
+        }
+        .slider-value {
+            font-size: 1em;
+        }
+        .btn-up, .btn-down {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            padding: 5px 10px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease;
+        }
+        .btn-up:hover, .btn-down:hover {
+            background-color: #0056b3;
+        }
+        #setValuesBtn, button[type="submit"] {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: block;
+            margin: 0 auto;
+        }
+        #setValuesBtn {
+            background-color: #007bff;
+            color: #fff;
+            margin-top: 20px;
+        }
+        #setValuesBtn:hover {
+            background-color: #0056b3;
+        }
+        button[type="submit"] {
+            background-color: #28a745;
+            color: #fff;
+            margin-top: 20px;
+        }
+        button[type="submit"]:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+   <nav class="navbar navbar-expand-lg navbar-custom">
+    <a class="navbar-brand" href="#">
+        <img src="{{ url_for('static', filename='cpp_logo.png') }}" width="209" height="50" class="d-inline-block align-top" alt="">
+        CPP DiTTA
+    </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('about') }}">About DiTTA</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('home') }}">Interactive Model</a>
+        </ul>
+    </div>
+</nav>
+
+    <div class="container">
+        <div class="content-wrapper">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<!-- templates/result_fragment.html -->
+<div class="alert alert-info text-center my-4">
+    <h3>Predicted Cut Location: {{ "%.2f"|format(y_pred) }} inches</h3>
+</div>
+
+<!-- Store cut for JavaScript -->
+<div id="predicted-cut" data-prediction="{{ '%.2f'|format(y_pred) }}" style="display:none;"></div>
+
+
+
+<!-- <div id="nn2-stress-output" class="my-4"></div> -->
+
