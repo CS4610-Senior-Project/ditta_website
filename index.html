@@ -7,6 +7,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+
   <style>
     body {
       font-family: 'Montserrat', sans-serif;
@@ -150,7 +152,8 @@
           <h4>Adjust Stress Values to See the Result:</h4>
           <div class="input-container" id="inputContainer"></div>
         </div>
-        <button type="button" class="btn btn-success btn-lg my-4" onclick="simulatePrediction()">Run Machine Learning Model</button>
+        <button type="button" class="btn btn-success btn-lg my-4" onclick="runNN1Prediction()">Run Machine Learning Model</button>
+
       </form>
 
       <div id="ml-result-container" class="text-center my-4"></div>
@@ -178,7 +181,7 @@
     </div>
   </div>
 
-  <!-- ✅ UNITY & JS LOGIC -->
+  <!-- UNITY & JS LOGIC -->
   <script src="static/UnityBuild_NN1/WebGL_NN1_Build4.loader.js"></script>
   <script src="static/UnityBuild_NN2/WebGL_NN2_Build2.loader.js"></script>
 
@@ -200,7 +203,7 @@
           </div>
         </div>`;
     });
-
+    
     function adjustInput(id,inc){
       const input=document.getElementById(id);
       let val=parseFloat(input.value)+inc;
@@ -213,17 +216,76 @@
       values.forEach((v,i)=>document.getElementById(`input${i+1}`).value=v);
     }
 
-    function simulatePrediction(){
-      const result=(Math.random()*24).toFixed(2);
-      document.getElementById("ml-result-container").innerHTML=
-        `<div class="alert alert-info"><h3>Predicted Cut Location: ${result} inches</h3></div>`;
-      document.getElementById("ml-result-container").dataset.prediction=result;
-    }
-
     function runNN2(){
       const result=document.getElementById("ml-result-container").dataset.prediction||"unknown";
       alert("Simulating stress field generation for cut location: "+result+" inches.");
     }
+
+        
+    let nn1Session = null;
+    let nn1Scaler = null;
+
+    // Load ONNX model once
+    async function loadNN1() {
+      if (nn1Session) return nn1Session;
+      console.log("Loading NN1 model...");
+      nn1Session = await ort.InferenceSession.create('static/models/NN1_trained_model.onnx');
+      console.log("NN1 model loaded.");
+      return nn1Session;
+    }
+
+    // Load the StandardScaler parameters (mean & scale)
+    async function loadScaler() {
+      if (nn1Scaler) return nn1Scaler;
+      const res = await fetch('static/models/NN1_scaler.json');
+      nn1Scaler = await res.json();
+      console.log("Scaler loaded:", nn1Scaler);
+      return nn1Scaler;
+    }
+
+    // Run NN1 inference
+    async function runNN1Prediction() {
+      const session = await loadNN1();
+      const scaler = await loadScaler();
+
+      // collect user inputs
+      const inputs = [];
+      for (let i = 1; i <= 7; i++) {
+        inputs.push(parseFloat(document.getElementById(`input${i}`).value) || 0);
+      }
+
+      // apply StandardScaler: (x - mean) / scale
+      const scaled = inputs.map((x, i) => (x - scaler.mean[i]) / scaler.scale[i]);
+
+      // create tensor [1,7]
+      const inputTensor = new ort.Tensor('float32', Float32Array.from(scaled), [1, 7]);
+
+      // feed dictionary — adjust key if ONNX input name differs
+      const feeds = { 'dense_input': inputTensor };
+      
+      document.getElementById("ml-result-container").innerHTML = `<div class="spinner-border text-primary" role="status"><span class="sr-only">Running...</span></div>`;
+
+
+      // run inference
+      const results = await session.run(feeds);
+      const outputName = Object.keys(results)[0];
+      const yPred = results[outputName].data[0];
+
+      displayPrediction(yPred);
+    }
+
+    // Display the result
+    function displayPrediction(yPred) {
+      const result = yPred.toFixed(2);
+      document.getElementById("ml-result-container").innerHTML =
+        `<div class="alert alert-info"><h3>Predicted Cut Location: ${result} inches</h3></div>`;
+      document.getElementById("ml-result-container").dataset.prediction = result;
+    }
+
+    // Optional: preload model & scaler after page load
+    window.addEventListener('DOMContentLoaded', async () => {
+      await Promise.all([loadNN1(), loadScaler()]);
+    });
   </script>
 
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
