@@ -69,7 +69,6 @@ def get_stress_field():
         print("Error in stress field generation:", e)
         return jsonify({"error": str(e)}), 500
 
-# Do not include on Render / Github 
-# for local use only
-# if __name__ == "__main__":
-    # app.run(debug=True)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 7860))  # Hugging Face default is 7860
+    app.run(host="0.0.0.0", port=port, debug=False)
