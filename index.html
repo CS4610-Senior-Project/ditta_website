@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CPP-DiTTA Interactive Model</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <style>
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background-color: #ffffff;
+      color: #000000;
+    }
+    h1, h2, h3 {
+      font-family: "Roboto Mono", monospace;
+    }
+    .content-wrapper {
+      background-color: #ffffff;
+      margin: 45px auto;
+      padding: 45px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      max-width: 1200px;
+    }
+    .input-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: nowrap;
+    }
+    .input-wrapper {
+      text-align: center;
+      flex: 1;
+    }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+    .btn-secondary {
+      padding: 5px;
+      font-size: 0.8em;
+      width: 30px;
+      height: 30px;
+      text-align: center;
+    }
+    input[type="number"].form-control {
+      width: 80px;
+      text-align: center;
+    }
+    input[type="number"].form-control::-webkit-outer-spin-button,
+    input[type="number"].form-control::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="content-wrapper">
+      <h1 class="text-center my-4">CPP-DiTTA Interactive Model</h1>
+      <h1 class="text-center my-4">Step 1 - Predicting Damage Location</h1>
+      <div class="text-center">
+        <p class="lead">First, seven sensors are used to read stress values along the length of the 24-inch beam. The values of these sensors will give insight into the location of any damage along the beam, if any.</p>
+        <p class="lead">Input stress values for each node on the beam. These may range from 0 to 10,000 psi.</p>
+      </div>
+
+      <div class="text-center my-4">
+        <h4>Select a Stress Scenario:</h4>
+        <div class="btn-group" role="group">
+          <button class="btn btn-outline-primary mx-2" onclick="setCase([8200, 4541, 3347, 1797, 1322, 877, 475])">Case 1</button>
+          <button class="btn btn-outline-primary mx-2" onclick="setCase([7186, 7316, 3316, 1794, 1320, 876, 475])">Case 2</button>
+          <button class="btn btn-outline-primary mx-2" onclick="setCase([4846, 4848, 3778, 1782, 1315, 874, 474])">Case 3</button>
+          <button class="btn btn-outline-primary mx-2" onclick="setCase([4826, 4402, 4084, 1746, 1296, 865, 469])">Case 4</button>
+          <button class="btn btn-outline-primary mx-2" onclick="setCase([4822, 4394, 3360, 4294, 1470, 828, 441])">Case 5</button>
+          <button class="btn btn-outline-primary mx-2" onclick="setCase([4819, 4390, 3350, 1819, 1428, 1844, 527])">Case 6</button>
+          <button class="btn btn-outline-primary mx-2" onclick="setCase([4818, 4389, 3348, 1804, 1347, 998, 1028])">Case 7</button>
+        </div>
+      </div>
+
+      <form id="sensorForm">
+        <div class="text-center my-4">
+          <h4>Adjust Stress Values to See the Result:</h4>
+          <div class="input-container" id="inputContainer"></div>
+        </div>
+        <button type="button" class="btn btn-success btn-lg my-4" onclick="simulatePrediction()">Run Machine Learning Model</button>
+      </form>
+
+      <div id="ml-result-container" class="text-center my-4"></div>
+
+      <div class="text-center my-5">
+        <canvas id="unityContainer" width="960" height="400" style="background:#000; display:block; margin:0 auto;"></canvas>
+      </div>
+
+      <div class="text-center">
+        <h1 class="text-center my-4">Step 2 - Predicting Stress Field</h1>
+        <p class="lead">The predicted cut location can be passed to a second model, which will generate a stress field showing stress on the beam after the damage.</p>
+      </div>
+
+      <div class="text-center my-3">
+        <button class="btn btn-success btn-lg my-4" onclick="runNN2()">Generate Stress Field</button>
+      </div>
+
+      <div class="text-center my-5">
+        <canvas id="unityContainer2" width="960" height="400" style="background:#000; display:block; margin:0 auto;"></canvas>
+      </div>
+
+      <div class="text-center my-4">
+        <img src="static/psi_gradient.png" alt="NN2 Output Visualization" style="max-width:50%; height:auto;">
+      </div>
+    </div>
+  </div>
+
+  <script src="static/UnityBuild_NN1/WebGL_NN1_Build4.loader.js"></script>
+  <script src="static/UnityBuild_NN2/WebGL_NN2_Build2.loader.js"></script>
+  <script>
+    // Generate inputs dynamically
+    const probes = ["4in", "6in", "10in", "16in", "18in", "20in", "22in"];
+    const container = document.getElementById("inputContainer");
+
+    probes.forEach((label, i) => {
+      const id = `input${i + 1}`;
+      container.innerHTML += `
+        <div class="input-wrapper">
+          <label for="${id}" class="input-label">${label} Probe</label>
+          <div class="input-group">
+            <button class="btn btn-secondary btn-sm" onclick="adjustInput('${id}',100)">&#x25B2;</button>
+            <button class="btn btn-secondary btn-sm" onclick="adjustInput('${id}',1000)">&#x25B2;</button>
+            <input type="number" id="${id}" name="${id}" class="form-control text-center" value="0" min="0" max="20000" step="any">
+            <button class="btn btn-secondary btn-sm" onclick="adjustInput('${id}',-1000)">&#x25BC;</button>
+            <button class="btn btn-secondary btn-sm" onclick="adjustInput('${id}',-100)">&#x25BC;</button>
+          </div>
+        </div>`;
+    });
+
+    function adjustInput(id, inc) {
+      const input = document.getElementById(id);
+      let val = parseFloat(input.value) + inc;
+      if (val < 0) val = 0;
+      if (val > 20000) val = 20000;
+      input.value = val;
+    }
+
+    function setCase(values) {
+      values.forEach((v, i) => document.getElementById(`input${i + 1}`).value = v);
+    }
+
+    // Simulate model output
+    function simulatePrediction() {
+      const result = (Math.random() * 24).toFixed(2);
+      document.getElementById("ml-result-container").innerHTML =
+        `<div class="alert alert-info"><h3>Predicted Cut Location: ${result} inches</h3></div>`;
+      document.getElementById("ml-result-container").dataset.prediction = result;
+    }
+
+    function runNN2() {
+      const result = document.getElementById("ml-result-container").dataset.prediction || "unknown";
+      alert("Simulating stress field generation for cut location: " + result + " inches.");
+    }
+  </script>
+
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
