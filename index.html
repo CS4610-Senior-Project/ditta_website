@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CPP-DiTTA Interactive Model</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CPP DiTTA Interactive Model</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -13,9 +13,36 @@
       background-color: #ffffff;
       color: #000000;
     }
-    h1, h2, h3 {
-      font-family: "Roboto Mono", monospace;
+
+    .navbar-custom {
+      background: url("static/cpp_campus.png") no-repeat center center;
+      background-size: cover;
+      position: relative;
     }
+
+    .navbar-custom .navbar-brand,
+    .navbar-custom .nav-link {
+      color: white !important;
+      text-shadow:
+        -1px -1px 0 #000,
+         1px -1px 0 #000,
+        -1px 1px 0 #000,
+         1px 1px 0 #000;
+    }
+
+    .navbar-custom .navbar-brand {
+      display: flex;
+      align-items: center;
+    }
+
+    .navbar-custom .navbar-brand img {
+      margin-right: 10px;
+    }
+
+    .navbar-custom .navbar-nav .nav-link {
+      margin-right: 15px;
+    }
+
     .content-wrapper {
       background-color: #ffffff;
       margin: 45px auto;
@@ -24,6 +51,11 @@
       border-radius: 10px;
       max-width: 1200px;
     }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-family: "Roboto Mono", monospace;
+    }
+
     .input-container {
       max-width: 1000px;
       margin: 0 auto;
@@ -31,16 +63,19 @@
       justify-content: space-between;
       flex-wrap: nowrap;
     }
+
     .input-wrapper {
       text-align: center;
       flex: 1;
     }
+
     .input-group {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 5px;
     }
+
     .btn-secondary {
       padding: 5px;
       font-size: 0.8em;
@@ -48,23 +83,50 @@
       height: 30px;
       text-align: center;
     }
+
     input[type="number"].form-control {
       width: 80px;
       text-align: center;
     }
+
     input[type="number"].form-control::-webkit-outer-spin-button,
     input[type="number"].form-control::-webkit-inner-spin-button {
       -webkit-appearance: none;
       margin: 0;
     }
+
+    button[type="submit"],
+    .btn-success {
+      border-radius: 5px;
+    }
   </style>
 </head>
 
 <body>
+  <!-- ✅ NAVBAR -->
+  <nav class="navbar navbar-expand-lg navbar-custom">
+    <a class="navbar-brand" href="index.html">
+      <img src="static/cpp_logo.png" width="209" height="50" class="d-inline-block align-top" alt="CPP Logo">
+      CPP DiTTA
+    </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item"><a class="nav-link" href="about.html">About DiTTA</a></li>
+        <li class="nav-item"><a class="nav-link" href="index.html">Interactive Model</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ✅ MAIN CONTENT -->
   <div class="container">
     <div class="content-wrapper">
       <h1 class="text-center my-4">CPP-DiTTA Interactive Model</h1>
       <h1 class="text-center my-4">Step 1 - Predicting Damage Location</h1>
+
       <div class="text-center">
         <p class="lead">First, seven sensors are used to read stress values along the length of the 24-inch beam. The values of these sensors will give insight into the location of any damage along the beam, if any.</p>
         <p class="lead">Input stress values for each node on the beam. These may range from 0 to 10,000 psi.</p>
@@ -73,13 +135,13 @@
       <div class="text-center my-4">
         <h4>Select a Stress Scenario:</h4>
         <div class="btn-group" role="group">
-          <button class="btn btn-outline-primary mx-2" onclick="setCase([8200, 4541, 3347, 1797, 1322, 877, 475])">Case 1</button>
-          <button class="btn btn-outline-primary mx-2" onclick="setCase([7186, 7316, 3316, 1794, 1320, 876, 475])">Case 2</button>
-          <button class="btn btn-outline-primary mx-2" onclick="setCase([4846, 4848, 3778, 1782, 1315, 874, 474])">Case 3</button>
-          <button class="btn btn-outline-primary mx-2" onclick="setCase([4826, 4402, 4084, 1746, 1296, 865, 469])">Case 4</button>
-          <button class="btn btn-outline-primary mx-2" onclick="setCase([4822, 4394, 3360, 4294, 1470, 828, 441])">Case 5</button>
-          <button class="btn btn-outline-primary mx-2" onclick="setCase([4819, 4390, 3350, 1819, 1428, 1844, 527])">Case 6</button>
-          <button class="btn btn-outline-primary mx-2" onclick="setCase([4818, 4389, 3348, 1804, 1347, 998, 1028])">Case 7</button>
+          <button class="btn btn-outline-primary mx-2" onclick="setCase([8200,4541,3347,1797,1322,877,475])">Case 1</button>
+          <button class="btn btn-outline-primary mx-2" onclick="setCase([7186,7316,3316,1794,1320,876,475])">Case 2</button>
+          <button class="btn btn-outline-primary mx-2" onclick="setCase([4846,4848,3778,1782,1315,874,474])">Case 3</button>
+          <button class="btn btn-outline-primary mx-2" onclick="setCase([4826,4402,4084,1746,1296,865,469])">Case 4</button>
+          <button class="btn btn-outline-primary mx-2" onclick="setCase([4822,4394,3360,4294,1470,828,441])">Case 5</button>
+          <button class="btn btn-outline-primary mx-2" onclick="setCase([4819,4390,3350,1819,1428,1844,527])">Case 6</button>
+          <button class="btn btn-outline-primary mx-2" onclick="setCase([4818,4389,3348,1804,1347,998,1028])">Case 7</button>
         </div>
       </div>
 
@@ -116,15 +178,16 @@
     </div>
   </div>
 
+  <!-- ✅ UNITY & JS LOGIC -->
   <script src="static/UnityBuild_NN1/WebGL_NN1_Build4.loader.js"></script>
   <script src="static/UnityBuild_NN2/WebGL_NN2_Build2.loader.js"></script>
-  <script>
-    // Generate inputs dynamically
-    const probes = ["4in", "6in", "10in", "16in", "18in", "20in", "22in"];
-    const container = document.getElementById("inputContainer");
 
-    probes.forEach((label, i) => {
-      const id = `input${i + 1}`;
+  <script>
+    // --- Generate input sliders dynamically ---
+    const probes = ["4in","6in","10in","16in","18in","20in","22in"];
+    const container = document.getElementById("inputContainer");
+    probes.forEach((label,i)=>{
+      const id=`input${i+1}`;
       container.innerHTML += `
         <div class="input-wrapper">
           <label for="${id}" class="input-label">${label} Probe</label>
@@ -138,29 +201,28 @@
         </div>`;
     });
 
-    function adjustInput(id, inc) {
-      const input = document.getElementById(id);
-      let val = parseFloat(input.value) + inc;
-      if (val < 0) val = 0;
-      if (val > 20000) val = 20000;
-      input.value = val;
+    function adjustInput(id,inc){
+      const input=document.getElementById(id);
+      let val=parseFloat(input.value)+inc;
+      if(val<0) val=0;
+      if(val>20000) val=20000;
+      input.value=val;
     }
 
-    function setCase(values) {
-      values.forEach((v, i) => document.getElementById(`input${i + 1}`).value = v);
+    function setCase(values){
+      values.forEach((v,i)=>document.getElementById(`input${i+1}`).value=v);
     }
 
-    // Simulate model output
-    function simulatePrediction() {
-      const result = (Math.random() * 24).toFixed(2);
-      document.getElementById("ml-result-container").innerHTML =
+    function simulatePrediction(){
+      const result=(Math.random()*24).toFixed(2);
+      document.getElementById("ml-result-container").innerHTML=
         `<div class="alert alert-info"><h3>Predicted Cut Location: ${result} inches</h3></div>`;
-      document.getElementById("ml-result-container").dataset.prediction = result;
+      document.getElementById("ml-result-container").dataset.prediction=result;
     }
 
-    function runNN2() {
-      const result = document.getElementById("ml-result-container").dataset.prediction || "unknown";
-      alert("Simulating stress field generation for cut location: " + result + " inches.");
+    function runNN2(){
+      const result=document.getElementById("ml-result-container").dataset.prediction||"unknown";
+      alert("Simulating stress field generation for cut location: "+result+" inches.");
     }
   </script>
 
