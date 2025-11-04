@@ -229,7 +229,7 @@
     async function loadNN1() {
       if (nn1Session) return nn1Session;
       console.log("Loading NN1 model...");
-      nn1Session = await ort.InferenceSession.create('static/models/NN1_trained_model.onnx');
+      nn1Session = await ort.InferenceSession.create('./models/NN1_trained_model.onnx');
       console.log("NN1 model loaded.");
       return nn1Session;
     }
@@ -237,7 +237,7 @@
     // Load the StandardScaler parameters (mean & scale)
     async function loadScaler() {
       if (nn1Scaler) return nn1Scaler;
-      const res = await fetch('static/models/NN1_scaler.json');
+      const res = await fetch('./models/NN1_scaler.json');
       nn1Scaler = await res.json();
       console.log("Scaler loaded:", nn1Scaler);
       return nn1Scaler;
