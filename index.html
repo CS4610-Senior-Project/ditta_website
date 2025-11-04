@@ -261,7 +261,8 @@
       const inputTensor = new ort.Tensor('float32', Float32Array.from(scaled), [1, 7]);
 
       // feed dictionary — adjust key if ONNX input name differs
-      const feeds = { 'dense_input': inputTensor };
+      const feeds = { [session.inputNames[0]]: inputTensor };
+
       
       document.getElementById("ml-result-container").innerHTML = `<div class="spinner-border text-primary" role="status"><span class="sr-only">Running...</span></div>`;
 
