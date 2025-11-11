@@ -404,7 +404,7 @@ function invMinMax(val, minArr, scaleArr, idx) {
       }
 
       const cutLocation = parseFloat(result);
-      const forceValue  = 1000; // TODO: wire a UI control if you want this adjustable
+      const forceValue  = 2.5; // TODO: wire a UI control if you want this adjustable
 
       // 1) Load model + scalers
       const [session, scalers] = await Promise.all([loadNN3(), loadNN3Scalers()]);
