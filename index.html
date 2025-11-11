@@ -105,7 +105,7 @@
 </head>
 
 <body>
-  <!-- ✅ NAVBAR -->
+  <!-- NAVBAR -->
   <nav class="navbar navbar-expand-lg navbar-custom">
     <a class="navbar-brand" href="index.html">
       <img src="static/cpp_logo.png" width="209" height="50" class="d-inline-block align-top" alt="CPP Logo">
@@ -123,7 +123,7 @@
     </div>
   </nav>
 
-  <!-- ✅ MAIN CONTENT -->
+  <!-- MAIN CONTENT -->
   <div class="container">
     <div class="content-wrapper">
       <h1 class="text-center my-4">CPP-DiTTA Interactive Model</h1>
@@ -180,10 +180,6 @@
       </div>
     </div>
   </div>
-
-  <!-- UNITY & JS LOGIC -->
-  <script src="static/UnityBuild_NN1/WebGL_NN1_Build4.loader.js"></script>
-  <script src="static/UnityBuild_NN2/WebGL_NN2_Build2.loader.js"></script>
 
   <script>
     // --- Generate input sliders dynamically ---
@@ -275,20 +271,84 @@
       displayPrediction(yPred);
     }
 
-    // Display the result
     function displayPrediction(yPred) {
       const result = yPred.toFixed(2);
       document.getElementById("ml-result-container").innerHTML =
         `<div class="alert alert-info"><h3>Predicted Cut Location: ${result} inches</h3></div>`;
       document.getElementById("ml-result-container").dataset.prediction = result;
+
+      // --- NEW: Send to Unity (Scene 1 visualization)
+      if (window.unityInstance1) {
+        console.log("Sending cut location to Unity:", result);
+        window.unityInstance1.SendMessage("CutPositionManager", "ReceivePrediction", result);
+      } else {
+        console.warn("Unity instance not ready yet");
+      }
     }
 
-    // Optional: preload model & scaler after page load
-    window.addEventListener('DOMContentLoaded', async () => {
-      await Promise.all([loadNN1(), loadScaler()]);
-    });
   </script>
 
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+
+  <!--  Controlled Unity initialization -->
+<script>
+async function loadUnityNN1() {
+  const script = document.createElement("script");
+  script.src = "static/UnityBuild_NN1/WebGL_NN1_Build4.loader.js";
+  document.body.appendChild(script);
+  await new Promise(res => (script.onload = res));
+
+  const buildUrl = "static/UnityBuild_NN1";
+  const config = {
+    dataUrl: buildUrl + "/WebGL_NN1_Build4.data",
+    frameworkUrl: buildUrl + "/WebGL_NN1_Build4.framework.js",
+    codeUrl: buildUrl + "/WebGL_NN1_Build4.wasm",
+    streamingAssetsUrl: "StreamingAssets",
+    companyName: "CPP",
+    productName: "DiTTA NN1",
+    productVersion: "1.0",
+  };
+
+  const canvas = document.getElementById("unityContainer");
+  return createUnityInstance(canvas, config, (p) => {
+    console.log(`NN1 loading: ${Math.round(p * 100)}%`);
+  }).then((unityInstance) => {
+    window.unityInstance1 = unityInstance;
+    console.log("NN1 Unity initialized!");
+  }).catch((err) => console.error("❌ NN1 failed:", err));
+}
+
+async function loadUnityNN2() {
+  const script = document.createElement("script");
+  script.src = "static/UnityBuild_NN2/WebGL_NN2_Build2.loader.js";
+  document.body.appendChild(script);
+  await new Promise(res => (script.onload = res));
+
+  const buildUrl = "static/UnityBuild_NN2";
+  const config = {
+    dataUrl: buildUrl + "/WebGL_NN2_Build2.data",
+    frameworkUrl: buildUrl + "/WebGL_NN2_Build2.framework.js",
+    codeUrl: buildUrl + "/WebGL_NN2_Build2.wasm",
+    streamingAssetsUrl: "StreamingAssets",
+    companyName: "CPP",
+    productName: "DiTTA NN2",
+    productVersion: "1.0",
+  };
+
+  const canvas = document.getElementById("unityContainer2");
+  return createUnityInstance(canvas, config, (p) => {
+    console.log(`NN2 loading: ${Math.round(p * 100)}%`);
+  }).then((unityInstance) => {
+    window.unityInstance2 = unityInstance;
+    console.log("NN2 Unity initialized!");
+  }).catch((err) => console.error("❌ NN2 failed:", err));
+}
+
+// Load both once the page is ready
+window.addEventListener("DOMContentLoaded", async () => {
+  await Promise.all([loadUnityNN1(), loadUnityNN2()]);
+});
+</script>
+
 </body>
 </html>
