@@ -194,231 +194,287 @@
   </div>
 
   <script>
-    // --- Generate input sliders dynamically ---
-    const probes = ["4in","6in","10in","16in","18in","20in","22in"];
-    const container = document.getElementById("inputContainer");
-    probes.forEach((label,i)=>{
-      const id=`input${i+1}`;
-      container.innerHTML += `
-        <div class="input-wrapper">
-          <label for="${id}" class="input-label">${label} Probe</label>
-          <div class="input-group">
-            <button class="btn btn-secondary btn-sm" onclick="adjustInput('${id}',100)">&#x25B2;</button>
-            <button class="btn btn-secondary btn-sm" onclick="adjustInput('${id}',1000)">&#x25B2;</button>
-            <input type="number" id="${id}" name="${id}" class="form-control text-center" value="0" min="0" max="20000" step="any">
-            <button class="btn btn-secondary btn-sm" onclick="adjustInput('${id}',-1000)">&#x25BC;</button>
-            <button class="btn btn-secondary btn-sm" onclick="adjustInput('${id}',-100)">&#x25BC;</button>
-          </div>
-        </div>`;
-    });
-    
-    function adjustInput(id,inc){
-          const input=document.getElementById(id);
-          let val=parseFloat(input.value)+inc;
-          if(val<0) val=0;
-          if(val>20000) val=20000;
-          input.value=val;
-        }
-
-        function setCase(values){
-          values.forEach((v,i)=>document.getElementById(`input${i+1}`).value=v);
-        }
-        
-    let nn1Session = null;
-    let nn1Scaler = null;
-
-    // Load ONNX model once
-    async function loadNN1() {
-      if (nn1Session) return nn1Session;
-      console.log("Loading NN1 model...");
-      nn1Session = await ort.InferenceSession.create('./models/NN1_trained_model.onnx');
-      console.log("NN1 model loaded.");
-      return nn1Session;
-    }
-
-    // Load the StandardScaler parameters (mean & scale)
-    async function loadScaler() {
-      if (nn1Scaler) return nn1Scaler;
-      const res = await fetch('./models/NN1_scaler.json');
-      nn1Scaler = await res.json();
-      console.log("Scaler loaded:", nn1Scaler);
-      return nn1Scaler;
-    }
-
-    // Run NN1 inference
-    async function runNN1Prediction() {
-      const session = await loadNN1();
-      const scaler = await loadScaler();
-
-      // collect user inputs
-      const inputs = [];
-      for (let i = 1; i <= 7; i++) {
-        inputs.push(parseFloat(document.getElementById(`input${i}`).value) || 0);
+  // --- Generate input sliders dynamically ---
+  const probes = ["4in","6in","10in","16in","18in","20in","22in"];
+  const container = document.getElementById("inputContainer");
+  probes.forEach((label,i)=>{
+    const id=`input${i+1}`;
+    container.innerHTML += `
+      <div class="input-wrapper">
+        <label for="${id}" class="input-label">${label} Probe</label>
+        <div class="input-group">
+          <button class="btn btn-secondary btn-sm" onclick="adjustInput('${id}',100)">&#x25B2;</button>
+          <button class="btn btn-secondary btn-sm" onclick="adjustInput('${id}',1000)">&#x25B2;</button>
+          <input type="number" id="${id}" name="${id}" class="form-control text-center" value="0" min="0" max="20000" step="any">
+          <button class="btn btn-secondary btn-sm" onclick="adjustInput('${id}',-1000)">&#x25BC;</button>
+          <button class="btn btn-secondary btn-sm" onclick="adjustInput('${id}',-100)">&#x25BC;</button>
+        </div>
+      </div>`;
+  });
+  
+  function adjustInput(id,inc){
+        const input=document.getElementById(id);
+        let val=parseFloat(input.value)+inc;
+        if(val<0) val=0;
+        if(val>20000) val=20000;
+        input.value=val;
       }
 
-      // apply StandardScaler: (x - mean) / scale
-      const scaled = inputs.map((x, i) => (x - scaler.mean[i]) / scaler.scale[i]);
-
-      // create tensor [1,7]
-      const inputTensor = new ort.Tensor('float32', Float32Array.from(scaled), [1, 7]);
-
-      // feed dictionary — adjust key if ONNX input name differs
-      const feeds = { [session.inputNames[0]]: inputTensor };
-
+      function setCase(values){
+        values.forEach((v,i)=>document.getElementById(`input${i+1}`).value=v);
+      }
       
-      document.getElementById("ml-result-container").innerHTML = `<div class="spinner-border text-primary" role="status"><span class="sr-only">Running...</span></div>`;
+  let nn1Session = null;
+  let nn1Scaler = null;
 
+  // Load ONNX model once
+  async function loadNN1() {
+    if (nn1Session) return nn1Session;
+    console.log("Loading NN1 model...");
+    nn1Session = await ort.InferenceSession.create('./models/NN1_trained_model.onnx');
+    console.log("NN1 model loaded.");
+    return nn1Session;
+  }
 
-      // run inference
-      const results = await session.run(feeds);
-      const outputName = Object.keys(results)[0];
-      const yPred = results[outputName].data[0];
+  // Load the StandardScaler parameters (mean & scale)
+  async function loadScaler() {
+    if (nn1Scaler) return nn1Scaler;
+    const res = await fetch('./models/NN1_scaler.json');
+    nn1Scaler = await res.json();
+    console.log("Scaler loaded:", nn1Scaler);
+    return nn1Scaler;
+  }
 
-      displayPrediction(yPred);
+  // Run NN1 inference
+  async function runNN1Prediction() {
+    const session = await loadNN1();
+    const scaler = await loadScaler();
+
+    // collect user inputs
+    const inputs = [];
+    for (let i = 1; i <= 7; i++) {
+      inputs.push(parseFloat(document.getElementById(`input${i}`).value) || 0);
     }
 
-    function displayPrediction(yPred) {
-      const result = yPred.toFixed(2);
-      document.getElementById("ml-result-container").innerHTML =
-        `<div class="alert alert-info"><h3>Predicted Cut Location: ${result} inches</h3></div>`;
-      document.getElementById("ml-result-container").dataset.prediction = result;
+    // apply StandardScaler: (x - mean) / scale
+    const scaled = inputs.map((x, i) => (x - scaler.mean[i]) / scaler.scale[i]);
 
-      // --- NEW: Send to Unity (Scene 1 visualization)
-      if (window.unityInstance1) {
-        console.log("Sending cut location to Unity:", result);
-        window.unityInstance1.SendMessage("CutPositionManager", "ReceivePrediction", result);
-      } else {
-        console.warn("Unity instance not ready yet");
-      }
+    // create tensor [1,7]
+    const inputTensor = new ort.Tensor('float32', Float32Array.from(scaled), [1, 7]);
+
+    // feed dictionary — adjust key if ONNX input name differs
+    const feeds = { [session.inputNames[0]]: inputTensor };
+
+    
+    document.getElementById("ml-result-container").innerHTML = `<div class="spinner-border text-primary" role="status"><span class="sr-only">Running...</span></div>`;
+
+
+    // run inference
+    const results = await session.run(feeds);
+    const outputName = Object.keys(results)[0];
+    const yPred = results[outputName].data[0];
+
+    displayPrediction(yPred);
+  }
+
+  function displayPrediction(yPred) {
+    const result = yPred.toFixed(2);
+    document.getElementById("ml-result-container").innerHTML =
+      `<div class="alert alert-info"><h3>Predicted Cut Location: ${result} inches</h3></div>`;
+    document.getElementById("ml-result-container").dataset.prediction = result;
+
+    // --- NEW: Send to Unity (Scene 1 visualization)
+    if (window.unityInstance1) {
+      console.log("Sending cut location to Unity:", result);
+      window.unityInstance1.SendMessage("CutPositionManager", "ReceivePrediction", result);
+    } else {
+      console.warn("Unity instance not ready yet");
     }
+  }
 
-    let nn3Session = null;
-    let scalerX = null;
-    let scalerY = null;
+  let nn3Session = null;
+  let scalerX = null;
+  let scalerY = null;
 
-    // Load NN3 model
-    async function loadNN3() {
-      if (nn3Session) return nn3Session;
-      console.log("Loading NN3 model...");
-      nn3Session = await ort.InferenceSession.create('./models/NN3.onnx');
-      console.log("NN3 model loaded.");
-      return nn3Session;
+  // Load NN3 model
+  async function loadNN3() {
+    if (nn3Session) return nn3Session;
+    console.log("Loading NN3 model...");
+    nn3Session = await ort.InferenceSession.create('./models/NN3.onnx');
+    console.log("NN3 model loaded.");
+    return nn3Session;
+  }
+
+  // Load normalization scalers
+  async function loadNN3Scalers() {
+    if (scalerX && scalerY) return { scalerX, scalerY };
+
+    const [resX, resY] = await Promise.all([
+      fetch('./models/scaler_X_nn3_noEng.json').then(r => r.json()),
+      fetch('./models/scaler_y_nn3_noEng.json').then(r => r.json())
+    ]);
+
+    scalerX = resX;
+    scalerY = resY;
+    console.log("NN3 scalers loaded:", scalerX, scalerY);
+    return { scalerX, scalerY };
+  }
+
+  // Normalization helpers
+  function normalizeInput(val, idx) {
+    // Handles either min_/max_ or scale_ depending on sklearn type
+    if (scalerX.min_) {
+      // If using MinMaxScaler
+      const min = scalerX.data_min_[idx];
+      const max = scalerX.data_max_[idx];
+      return (val - min) / (max - min);
+    } else if (scalerX.scale_) {
+      // If using StandardScaler (mean/std)
+      const mean = scalerX.mean_[idx];
+      const scale = scalerX.scale_[idx];
+      return (val - mean) / scale;
+    } else {
+      console.warn("Unknown scaler format for X:", scalerX);
+      return val;
     }
+  }
 
-    // Load normalization scalers
-    async function loadNN3Scalers() {
-      if (scalerX && scalerY) return { scalerX, scalerY };
-
-      const [resX, resY] = await Promise.all([
-        fetch('./models/scaler_X_nn3_noEng.json').then(r => r.json()),
-        fetch('./models/scaler_y_nn3_noEng.json').then(r => r.json())
-      ]);
-
-      scalerX = resX;
-      scalerY = resY;
-      console.log("NN3 scalers loaded:", scalerX, scalerY);
-      return { scalerX, scalerY };
+  function denormalizeOutput(val, idx = 0) {
+      // Handles either min_/max_ or scale_ for Y scaler
+    if (scalerY.data_min_) {
+      const min = scalerY.data_min_[idx];
+      const max = scalerY.data_max_[idx];
+      return val * (max - min) + min;
+    } else if (scalerY.scale_) {
+      const mean = scalerY.mean_[idx];
+      const scale = scalerY.scale_[idx];
+      return val * scale + mean;
+    } else {
+      console.warn("Unknown scaler format for Y:", scalerY);
+      return val;
     }
+  }
 
-    // Normalization helpers
-    function normalizeInput(val, idx) {
-      // Handles either min_/max_ or scale_ depending on sklearn type
-      if (scalerX.min_) {
-        // If using MinMaxScaler
-        const min = scalerX.data_min_[idx];
-        const max = scalerX.data_max_[idx];
-        return (val - min) / (max - min);
-      } else if (scalerX.scale_) {
-        // If using StandardScaler (mean/std)
-        const mean = scalerX.mean_[idx];
-        const scale = scalerX.scale_[idx];
-        return (val - mean) / scale;
-      } else {
-        console.warn("Unknown scaler format for X:", scalerX);
-        return val;
-      }
+async function fetchNodeCSV() {
+  // put your CSV in: static/data/Node_Cords_40k.csv
+  const res = await fetch('./static/data/Node_Cords_40k.csv');
+  if (!res.ok) throw new Error('Failed to fetch Node_Cords_40k.csv');
+  const text = await res.text();
+  return text;
+}
+
+function parseNodeCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  // expected header: Node Number,X Location (in),Y Location (in),Z Location (in)
+  const startIdx = 1; // skip header line
+  const nodes = [];
+  for (let i = startIdx; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line) continue;
+    const parts = line.split(',');
+    if (parts.length < 4) continue;
+    // parts[0]=Node Number (ignored)
+    const x = parseFloat(parts[1]);   // X Location (in)
+    const y = parseFloat(parts[2]);   // Y Location (in)
+    const z = parseFloat(parts[3]);   // Z Location (in)
+    if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)) {
+      nodes.push({ x, y, z });
     }
+  }
+  return nodes;
+}
 
-    function denormalizeOutput(val, idx = 0) {
-       // Handles either min_/max_ or scale_ for Y scaler
-      if (scalerY.data_min_) {
-        const min = scalerY.data_min_[idx];
-        const max = scalerY.data_max_[idx];
-        return val * (max - min) + min;
-      } else if (scalerY.scale_) {
-        const mean = scalerY.mean_[idx];
-        const scale = scalerY.scale_[idx];
-        return val * scale + mean;
-      } else {
-        console.warn("Unknown scaler format for Y:", scalerY);
-        return val;
-      }
-    }
+// Normalization / Denormalization helpers for MinMaxScaler
+function normMinMax(val, minArr, scaleArr, idx) {
+  // Convert raw input → normalized value in [0,1]
+  return val * scaleArr[idx] + minArr[idx];
+}
 
-    async function runNN2() {
-      const result = document.getElementById("ml-result-container").dataset.prediction || "unknown";
+function invMinMax(val, minArr, scaleArr, idx) {
+  // Convert normalized value → back to original (psi, etc.)
+  return (val - minArr[idx]) / scaleArr[idx];
+}
 
+
+  async function runNN2() {
+    const result = document.getElementById("ml-result-container").dataset.prediction || "unknown";
       if (result === "unknown") {
         alert("Please run the machine learning model first.");
         return;
       }
 
       const cutLocation = parseFloat(result);
-      const forceValue = 1000; // You can adjust or get this from user input later
+      const forceValue  = 1000; // TODO: wire a UI control if you want this adjustable
 
+      // 1) Load model + scalers
       const [session, scalers] = await Promise.all([loadNN3(), loadNN3Scalers()]);
       const { scalerX, scalerY } = scalers;
 
+      // 2) Fetch and parse your CSV grid (≈40k nodes)
+      console.log("Fetching node grid CSV...");
+      const csvText = await fetchNodeCSV();
+      const nodes = parseNodeCSV(csvText);
+      console.log(`Parsed ${nodes.length} nodes from CSV.`);
+
+      // 3) Batch over nodes
+      // ONNX usually expects [N,5], but many training exports still want [1,5].
+      // We'll do micro-batches of size BATCH (tune for perf/memory).
+      const BATCH = 1024; // try 2048 on desktop if perf is fine
       const points = [];
-      const gridSizeX = 20, gridSizeY = 5, gridSizeZ = 1;
-      const xRange = [0, 24];   // inches across beam
-      const yRange = [0, 1];    // normalized beam thickness
-      const zValue = 0;         // flat beam assumption
+      console.time("NN3-grid-inference");
 
-      console.log("Running NN3 predictions across grid...");
+      for (let start = 0; start < nodes.length; start += BATCH) {
+        const end = Math.min(start + BATCH, nodes.length);
+        const batchSize = end - start;
 
-      for (let ix = 0; ix < gridSizeX; ix++) {
-        for (let iy = 0; iy < gridSizeY; iy++) {
-          const x = xRange[0] + (xRange[1] - xRange[0]) * (ix / (gridSizeX - 1));
-          const y = yRange[0] + (yRange[1] - yRange[0]) * (iy / (gridSizeY - 1));
-          const z = zValue;
-
-          // Normalize input
-          const inputNorm = Float32Array.from([
-            normalizeInput(x, 0),
-            normalizeInput(y, 1),
-            normalizeInput(z, 2),
-            normalizeInput(cutLocation, 3),
-            normalizeInput(forceValue, 4)
-          ]);
-
-          const inputTensor = new ort.Tensor('float32', inputNorm, [1, 5]);
-
-          // Run inference
-          const feeds = { [session.inputNames[0]]: inputTensor };
-          const results = await session.run(feeds);
-          const outputName = Object.keys(results)[0];
-          const stressNorm = results[outputName].data[0];
-
-          // Denormalize
-          const stress = denormalizeOutput(stressNorm);
-
-          points.push({ x, y, z, stress });
+        // Build [batchSize, 5] input: (x,y,z,cut,force) — all normalized
+        const inputArr = new Float32Array(batchSize * 5);
+        let ptr = 0;
+        for (let i = start; i < end; i++) {
+          const { x, y, z } = nodes[i];
+          inputArr[ptr++] = normMinMax(x, scalerX.min_, scalerX.scale_, 0);
+          inputArr[ptr++] = normMinMax(y, scalerX.min_, scalerX.scale_, 1);
+          inputArr[ptr++] = normMinMax(z, scalerX.min_, scalerX.scale_, 2);
+          inputArr[ptr++] = normMinMax(cutLocation, scalerX.min_, scalerX.scale_, 3);
+          inputArr[ptr++] = normMinMax(forceValue,  scalerX.min_, scalerX.scale_, 4);
         }
+
+        // If your NN3 takes [batch,5], use shape [batchSize,5]; if it takes [1,5], loop each row instead.
+        const inputTensor = new ort.Tensor('float32', inputArr, [batchSize, 5]);
+        const feeds = { [session.inputNames[0]]: inputTensor };
+        const outputs = await session.run(feeds);
+        const outName = Object.keys(outputs)[0];
+        const out = outputs[outName].data; // length = batchSize
+
+        // Denormalize each stress and push the point back
+        for (let j = 0; j < batchSize; j++) {
+          const node = nodes[start + j];
+          const stressNorm = out[j];
+          const stress = invMinMax(stressNorm, scalerY.min_, scalerY.scale_, 0);
+          points.push({ x: node.x, y: node.y, z: node.z, stress });
+        }
+
+        if (start === 0 || (start / BATCH) % 10 === 0) {
+          console.log(`NN3 progress: ${end}/${nodes.length} (${Math.round(100 * end / nodes.length)}%)`);
+        }
+
+        // Yield to the browser so the page stays responsive
+        await new Promise(requestAnimationFrame);
       }
 
-      console.log(`Predicted ${points.length} stress values.`);
+      console.timeEnd("NN3-grid-inference");
+      console.log(`Predicted ${points.length} stresses.`);
 
+      // 4) Send to Unity
       const jsonData = JSON.stringify(points);
-
       if (window.unityInstance2) {
-        console.log("Sending stress field JSON to Unity...");
+        console.log("Sending stress field JSON to Unity:", (jsonData.length/1024/1024).toFixed(2), "MB");
         window.unityInstance2.SendMessage("WebDataReceiver", "ReceiveStressData", jsonData);
       } else {
         console.warn("Unity instance 2 not ready yet");
       }
-    }
-      </script>
+  }
+    </script>
 
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 
