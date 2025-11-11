@@ -213,22 +213,16 @@
     });
     
     function adjustInput(id,inc){
-      const input=document.getElementById(id);
-      let val=parseFloat(input.value)+inc;
-      if(val<0) val=0;
-      if(val>20000) val=20000;
-      input.value=val;
-    }
+          const input=document.getElementById(id);
+          let val=parseFloat(input.value)+inc;
+          if(val<0) val=0;
+          if(val>20000) val=20000;
+          input.value=val;
+        }
 
-    function setCase(values){
-      values.forEach((v,i)=>document.getElementById(`input${i+1}`).value=v);
-    }
-
-    function runNN2(){
-      const result=document.getElementById("ml-result-container").dataset.prediction||"unknown";
-      alert("Simulating stress field generation for cut location: "+result+" inches.");
-    }
-
+        function setCase(values){
+          values.forEach((v,i)=>document.getElementById(`input${i+1}`).value=v);
+        }
         
     let nn1Session = null;
     let nn1Scaler = null;
@@ -298,7 +292,133 @@
       }
     }
 
-  </script>
+    let nn3Session = null;
+    let scalerX = null;
+    let scalerY = null;
+
+    // Load NN3 model
+    async function loadNN3() {
+      if (nn3Session) return nn3Session;
+      console.log("Loading NN3 model...");
+      nn3Session = await ort.InferenceSession.create('./models/NN3.onnx');
+      console.log("NN3 model loaded.");
+      return nn3Session;
+    }
+
+    // Load normalization scalers
+    async function loadNN3Scalers() {
+      if (scalerX && scalerY) return { scalerX, scalerY };
+
+      const [resX, resY] = await Promise.all([
+        fetch('./models/scaler_X_nn3_noEng.json').then(r => r.json()),
+        fetch('./models/scaler_y_nn3_noEng.json').then(r => r.json())
+      ]);
+
+      scalerX = resX;
+      scalerY = resY;
+      console.log("NN3 scalers loaded:", scalerX, scalerY);
+      return { scalerX, scalerY };
+    }
+
+    // Normalization helpers
+    function normalizeInput(val, idx) {
+      // Handles either min_/max_ or scale_ depending on sklearn type
+      if (scalerX.min_) {
+        // If using MinMaxScaler
+        const min = scalerX.data_min_[idx];
+        const max = scalerX.data_max_[idx];
+        return (val - min) / (max - min);
+      } else if (scalerX.scale_) {
+        // If using StandardScaler (mean/std)
+        const mean = scalerX.mean_[idx];
+        const scale = scalerX.scale_[idx];
+        return (val - mean) / scale;
+      } else {
+        console.warn("Unknown scaler format for X:", scalerX);
+        return val;
+      }
+    }
+
+    function denormalizeOutput(val, idx = 0) {
+       // Handles either min_/max_ or scale_ for Y scaler
+      if (scalerY.data_min_) {
+        const min = scalerY.data_min_[idx];
+        const max = scalerY.data_max_[idx];
+        return val * (max - min) + min;
+      } else if (scalerY.scale_) {
+        const mean = scalerY.mean_[idx];
+        const scale = scalerY.scale_[idx];
+        return val * scale + mean;
+      } else {
+        console.warn("Unknown scaler format for Y:", scalerY);
+        return val;
+      }
+    }
+
+    async function runNN2() {
+      const result = document.getElementById("ml-result-container").dataset.prediction || "unknown";
+
+      if (result === "unknown") {
+        alert("Please run the machine learning model first.");
+        return;
+      }
+
+      const cutLocation = parseFloat(result);
+      const forceValue = 1000; // You can adjust or get this from user input later
+
+      const [session, scalers] = await Promise.all([loadNN3(), loadNN3Scalers()]);
+      const { scalerX, scalerY } = scalers;
+
+      const points = [];
+      const gridSizeX = 20, gridSizeY = 5, gridSizeZ = 1;
+      const xRange = [0, 24];   // inches across beam
+      const yRange = [0, 1];    // normalized beam thickness
+      const zValue = 0;         // flat beam assumption
+
+      console.log("Running NN3 predictions across grid...");
+
+      for (let ix = 0; ix < gridSizeX; ix++) {
+        for (let iy = 0; iy < gridSizeY; iy++) {
+          const x = xRange[0] + (xRange[1] - xRange[0]) * (ix / (gridSizeX - 1));
+          const y = yRange[0] + (yRange[1] - yRange[0]) * (iy / (gridSizeY - 1));
+          const z = zValue;
+
+          // Normalize input
+          const inputNorm = Float32Array.from([
+            normalizeInput(x, 0),
+            normalizeInput(y, 1),
+            normalizeInput(z, 2),
+            normalizeInput(cutLocation, 3),
+            normalizeInput(forceValue, 4)
+          ]);
+
+          const inputTensor = new ort.Tensor('float32', inputNorm, [1, 5]);
+
+          // Run inference
+          const feeds = { [session.inputNames[0]]: inputTensor };
+          const results = await session.run(feeds);
+          const outputName = Object.keys(results)[0];
+          const stressNorm = results[outputName].data[0];
+
+          // Denormalize
+          const stress = denormalizeOutput(stressNorm);
+
+          points.push({ x, y, z, stress });
+        }
+      }
+
+      console.log(`Predicted ${points.length} stress values.`);
+
+      const jsonData = JSON.stringify(points);
+
+      if (window.unityInstance2) {
+        console.log("Sending stress field JSON to Unity...");
+        window.unityInstance2.SendMessage("WebDataReceiver", "ReceiveStressData", jsonData);
+      } else {
+        console.warn("Unity instance 2 not ready yet");
+      }
+    }
+      </script>
 
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 
@@ -327,7 +447,7 @@ async function loadUnityNN1() {
   }).then((unityInstance) => {
     window.unityInstance1 = unityInstance;
     console.log("NN1 Unity initialized!");
-  }).catch((err) => console.error("❌ NN1 failed:", err));
+  }).catch((err) => console.error("NN1 failed:", err));
 }
 
 async function loadUnityNN2() {
@@ -353,7 +473,7 @@ async function loadUnityNN2() {
   }).then((unityInstance) => {
     window.unityInstance2 = unityInstance;
     console.log("NN2 Unity initialized!");
-  }).catch((err) => console.error("❌ NN2 failed:", err));
+  }).catch((err) => console.error("NN2 failed:", err));
 }
 
 // Load both once the page is ready
